@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<input id="sendServer" name="sendServer" type="button" value="Submit" />
+  <table id="data" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Leaf</th>
+        <th>Rack</th>
+        <th>BGP_AS</th>
+        <th>Loopback</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tor in tors %}
+        <tr>
+          <td><input type="text" value={{ tor.name }} id="leaf-{{loop.index}}-name" name="leaf-{{loop.index}}-name"></td>
+          <td><input type="text" value={{ tor.rack }} id="leaf-{{loop.index}}-rack" name="leaf-{{loop.index}}-rack"></td>
+          <td><input type="text" value={{ tor.bgp }}  id="leaf-{{loop.index}}-as" name="leaf-{{loop.index}}-as"></td>
+          <td><input type="text" value={{ tor.loopback }} id="leaf-{{loop.index}}-loopback" name="leaf-{{loop.index}}-loopback"></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button id="addRow">Add new row</button>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+  $(document).ready(function() {
+    var counter = 1;
+    var table = $('#data').DataTable({
+        columnDefs: [{
+            orderable: false,
+            targets: [0,1,2,3]
+        }]
+    });
+ 
+    // simple event handler for the Submit button
+    // the Python Flask postStuff route receives a fairly ugly JSON array
+    // there are ways to simplify what gets POSTed but it's pretty tricky JS
+    // and I want to keep this code n00b friendly
+    $('#sendServer').click( function() {
+        var tors = table.$('input').serializeArray();
+        $.ajax({
+            dataType: 'json',
+            url: "/postStuff",
+            type: "POST",
+            data: JSON.stringify(tors),
+            contentType: "application/j-son;charset=UTF-8",
+            success: function(data){}
+          });
+        });
+ 
+    // when the add row button is clicked, we add a row with 4 elements
+    // each element is user-writable, so it takes the form of an <input>
+    // the code below uses the ES6 string templates 
+    $('#addRow').click( function() {
+        counter++;
+        asNumber = counter + 65000;
+        loopback = `1.1.1.${counter}/32` 
+        tableRowElem1 = `<input type="text" value="leaf_${counter}" id="leaf-${counter}-name" name="leaf-${counter}-name">`
+        tableRowElem2 = `<input type="text" value="rack_${counter}" id="leaf-${counter}-rack" name="leaf-${counter}-rack">`
+        tableRowElem3 = `<input type="text" value=${asNumber} id="leaf-${counter}-as" name="leaf-${counter}-as">`
+        tableRowElem4 = `<input type="text" value=${loopback} id="leaf-${counter}-loopback" name="leaf-${counter}-loopback">`
+        table.row.add([tableRowElem1,tableRowElem2,tableRowElem3,tableRowElem4]).draw(false);
+      });
+   
+    });
+  </script>
+{% endblock %}
